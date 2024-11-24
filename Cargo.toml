@@ -1,0 +1,17 @@
+[package]
+name = "todo_api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+poem = "3"
+poem-openapi = { version = "5.1.2", features = ["swagger-ui", "chrono"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1.40"
+chrono = "0.4.38"
+sqlx = { version = "0.8", features = [
+    "runtime-tokio",
+    "postgres",
+    "migrate",
+    "chrono",
+] }

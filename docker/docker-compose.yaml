@@ -1,0 +1,22 @@
+services:
+  todo-api:
+    networks:
+      - aetp-backend
+    env_file: ".env"
+    container_name: ${TODO_API_CONTAINER_NAME}
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+    volumes:
+      - ../:/app/todo_api
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "3000:3000"
+
+networks:
+  aetp-backend:
+    external: true
+    name: "aetp-backend"
