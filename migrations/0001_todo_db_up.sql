@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS tasks_task_status (
   id             BIGSERIAL PRIMARY KEY NOT NULL,
   created_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  task_id        BIGSERIAL NOT NULL REFERENCES tasks(id),
+  task_id        BIGSERIAL NOT NULL,
   task_status_id BIGSERIAL NOT NULL REFERENCES task_status(id)
   CONSTRAINT no_duplicate_task_status_association UNIQUE (task_id, task_status_id)
 );

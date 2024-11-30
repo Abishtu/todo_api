@@ -1,7 +1,6 @@
-use poem::Result;
 use poem_openapi::param::Path;
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi};
-
+use crate::api::task_status::TaskStatus;
 use crate::db;
 
 #[derive(Object)]
@@ -13,6 +12,7 @@ pub struct Task {
     pub description: Option<String>,
     pub start_date: Option<chrono::DateTime<chrono::Utc>>,
     pub end_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub status: Vec<TaskStatus>
 }
 
 #[derive(ApiResponse)]
@@ -169,7 +169,36 @@ impl TaskApi {
         .await;
 
         match new_task {
-            Ok(data) => CreateTaskResponse::SuccessResponse(Json(data.to_api())),
+            Ok(data) => {
+                let mut task_api_result = data.to_api();
+                let db_pool_2 = db_pool.clone();
+                let associate_starting_status = db::task_task_status::create_tasks_task_status(
+                    &db_pool_2,
+                    task_api_result.id,
+                    db::task_status::StartingTaskStatusEntries::Created as i64
+                ).await;
+
+                match associate_starting_status {
+                    Ok(data) => {
+                        let task_status_id = data.task_status_id;
+                        let db_pool_3 = db_pool_2.clone();
+                        let task_status_list = db::task_status::get_task_status(&db_pool_3, &task_status_id).await;
+                        match task_status_list {
+                            Ok(data) => {
+                                task_api_result.status = vec![data.to_api()];
+                                CreateTaskResponse::SuccessResponse(Json(task_api_result))
+                            },
+                            Err(err) => CreateTaskResponse::Error(Json(crate::api::Error {
+                                msg: format!("{:?}", err),
+                            }))
+                        }
+                    },
+                    Err(err) => CreateTaskResponse::Error(Json(crate::api::Error {
+                        msg: format!("{:?}", err),
+                    }))
+                }
+
+            },
             Err(err) => CreateTaskResponse::Error(Json(crate::api::Error {
                 msg: format!("{:?}", err),
             })),

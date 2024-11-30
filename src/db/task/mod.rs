@@ -1,5 +1,7 @@
 use sqlx::FromRow;
 use std::error::Error;
+use crate::db;
+use crate::db::task_task_status::TaskTaskStatus;
 
 #[derive(Debug, FromRow)]
 pub struct Task {
@@ -27,6 +29,7 @@ impl Task {
             description,
             start_date: self.start_date,
             end_date: self.end_date,
+            status: vec![],
         }
     }
 }
@@ -56,7 +59,7 @@ pub async fn create_task(
     start_date: Option<chrono::DateTime<chrono::Utc>>,
     end_date: Option<chrono::DateTime<chrono::Utc>>,
 ) -> Result<Task, Box<dyn Error>> {
-    let q = r"
+    let q1 = r"
         INSERT INTO tasks (
             name,
             description,
@@ -65,13 +68,26 @@ pub async fn create_task(
         ) VALUES ($1, $2, $3, $4)
         RETURNING *
     ";
-    let query = sqlx::query_as::<_, Task>(q)
+    let query = sqlx::query_as::<_, Task>(q1)
         .bind(name)
         .bind(description)
         .bind(start_date)
         .bind(end_date);
 
     let new_task = query.fetch_one(conn).await?;
+
+    let q2 = r"
+        INSERT INTO tasks_task_status ('
+            task_id,
+            task_status_id
+        ) VALUES
+            ($1, $2),
+            ($1, $3)
+    ";
+    let _ = sqlx::query_as::<_, TaskTaskStatus>(q2)
+        .bind(new_task.id)
+        .bind(db::task_status::StartingTaskStatusEntries::Created)
+        .bind(db::task_status::StartingTaskStatusEntries::Open);
 
     Ok(new_task)
 }

@@ -1,6 +1,13 @@
 use sqlx::FromRow;
 use std::error::Error;
 
+pub enum StartingTaskStatusEntries{
+    Created = 1,
+    Deleted = 2,
+    Open = 3,
+    Closed = 4
+}
+
 #[derive(Debug, FromRow)]
 pub struct TaskStatus {
     pub id: i64,
