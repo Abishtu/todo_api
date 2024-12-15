@@ -1,7 +1,8 @@
-use sqlx::FromRow;
+use sqlx::{Decode, FromRow, Type};
 use std::error::Error;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, FromRow)]
+#[derive(Debug, FromRow, Type, Serialize, Deserialize)]
 pub struct TaskTaskStatus {
     pub id: i64,
     pub created_at: chrono::DateTime<chrono::Utc>,

@@ -1,9 +1,11 @@
-use sqlx::FromRow;
+use sqlx::{Decode, FromRow, Type};
 use std::error::Error;
+use sqlx::types::Json;
+use crate::db::task_status::TaskStatus;
 use crate::db;
 use crate::db::task_task_status::TaskTaskStatus;
 
-#[derive(Debug, FromRow)]
+#[derive(Debug, FromRow, Type)]
 pub struct Task {
     pub id: i64,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -12,6 +14,7 @@ pub struct Task {
     pub description: Option<String>,
     pub start_date: Option<chrono::DateTime<chrono::Utc>>,
     pub end_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub task_status: Json<Vec<TaskStatus>>,
 }
 
 impl Task {
@@ -21,6 +24,12 @@ impl Task {
             Some(data) => Some(String::from(data)),
             None => None,
         };
+
+        let mut status_list:Vec<crate::api::task_status::TaskStatus> = Vec::new();
+        for status in self.task_status.0.iter() {
+            status_list.push(status.to_api())
+        }
+
         crate::api::task::Task {
             id: self.id,
             created_at: self.created_at,
@@ -29,13 +38,32 @@ impl Task {
             description,
             start_date: self.start_date,
             end_date: self.end_date,
-            status: vec![],
+            status: status_list,
         }
     }
 }
 
 pub async fn get_task_list(conn: &sqlx::PgPool) -> Result<Vec<Task>, Box<dyn Error>> {
-    let q = "SELECT * FROM tasks";
+    let q = r#"
+        SELECT
+             t.id,
+             t.created_at,
+             t.updated_at,
+             t.name,
+             t.description,
+             t.start_date,
+             t.end_date,
+             COALESCE(JSON_AGG(JSON_BUILD_OBJECT('id', ts.id,
+                                                 'created_at', ts.created_at,
+                                                 'updated_at', ts.updated_at,
+                                                 'name', ts.name))
+             FILTER (WHERE ts.id IS NOT NULL), '[]') as "task_status"
+        FROM tasks as t
+        LEFT OUTER JOIN tasks_task_status as tts ON t.id = tts.task_id
+        LEFT OUTER JOIN task_status as ts ON ts.id = tts.task_status_id
+        GROUP BY t.id
+
+    "#;
     let query = sqlx::query_as::<_, Task>(q);
 
     let task_list = query.fetch_all(conn).await?;
@@ -44,7 +72,21 @@ pub async fn get_task_list(conn: &sqlx::PgPool) -> Result<Vec<Task>, Box<dyn Err
 }
 
 pub async fn get_task(conn: &sqlx::PgPool, pk: &i64) -> Result<Task, Box<dyn Error>> {
-    let q = "SELECT * FROM tasks WHERE id = $1";
+    let q = r#"
+        SELECT
+            t.id,
+            t.created_at,
+            t.updated_at,
+            t.name,
+            t.description,
+            t.start_date,
+            t.end_date,
+            ts.name as "task_status"
+        FROM tasks as t
+        INNER JOIN tasks_task_status as tts ON tts.task_id = t.id
+        INNER JOIN tasks_status as ts ON ts.id = tts.task_status_id
+        WHERE t.id = $1
+    "#;
     let query = sqlx::query_as::<_, Task>(q).bind(pk);
 
     let task = query.fetch_one(conn).await?;

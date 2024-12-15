@@ -1,6 +1,8 @@
-use sqlx::FromRow;
+use sqlx::{Database, Decode, FromRow, Type};
 use std::error::Error;
+use serde::{Deserialize, Serialize};
 
+#[derive(Type)]
 pub enum StartingTaskStatusEntries{
     Created = 1,
     Deleted = 2,
@@ -8,7 +10,7 @@ pub enum StartingTaskStatusEntries{
     Closed = 4
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug, FromRow, Type, Serialize, Deserialize)]
 pub struct TaskStatus {
     pub id: i64,
     pub updated_at: chrono::DateTime<chrono::Utc>,

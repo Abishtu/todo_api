@@ -46,7 +46,7 @@ async fn main() {
         + &(port)
         + &String::from("/")
         + &(db_name);
-    println!("Connecting to DB");
+    println!("Connecting to DB on port {}", port);
     let pool = match sqlx::postgres::PgPool::connect(&url).await {
         Ok(p) => {
             println!("Postgres connection established");
@@ -60,7 +60,7 @@ async fn main() {
             println!("Data migration successful");
         }
         Err(err) => {
-            eprintln!("Could not complete data migrations::\n\t{}", err);
+            eprintln!("Could not complete data migrations:\n\t{}", err);
         }
     };
 
