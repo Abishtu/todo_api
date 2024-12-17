@@ -46,7 +46,15 @@ async fn main() {
         + &(port)
         + &String::from("/")
         + &(db_name);
-    println!("Connecting to DB on port {}", port);
+    let display_url = String::from("postgres://")
+    + &String::from("******")
+    + &String::from(":")
+    + &String::from("******")
+    + &String::from("@db:")
+    + &(port)
+    + &String::from("/")
+    + &db_name;
+    println!("Connecting to DB on {}", display_url);
     let pool = match sqlx::postgres::PgPool::connect(&url).await {
         Ok(p) => {
             println!("Postgres connection established");

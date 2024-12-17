@@ -1,9 +1,16 @@
+networks:
+  aetp-backend:
+    name: "aetp-backend"
+    external: true
+
 services:
   todo-api:
     networks:
       - aetp-backend
     env_file: ".env"
     container_name: ${TODO_API_CONTAINER_NAME}
+    image: rust:latest
+    working_dir: "/app/todo_api"
     build:
       context: ../
       dockerfile: ./docker/Dockerfile
@@ -15,8 +22,3 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "3000:3000"
-
-networks:
-  aetp-backend:
-    external: true
-    name: "aetp-backend"

@@ -3,6 +3,7 @@ use std::error::Error;
 use sqlx::types::Json;
 use crate::db::task_status::TaskStatus;
 use crate::db;
+use crate::db::task_status;
 use crate::db::task_task_status::TaskTaskStatus;
 
 #[derive(Debug, FromRow, Type)]
@@ -74,18 +75,23 @@ pub async fn get_task_list(conn: &sqlx::PgPool) -> Result<Vec<Task>, Box<dyn Err
 pub async fn get_task(conn: &sqlx::PgPool, pk: &i64) -> Result<Task, Box<dyn Error>> {
     let q = r#"
         SELECT
-            t.id,
-            t.created_at,
-            t.updated_at,
-            t.name,
-            t.description,
-            t.start_date,
-            t.end_date,
-            ts.name as "task_status"
+             t.id,
+             t.created_at,
+             t.updated_at,
+             t.name,
+             t.description,
+             t.start_date,
+             t.end_date,
+             COALESCE(JSON_AGG(JSON_BUILD_OBJECT('id', ts.id,
+                                                 'created_at', ts.created_at,
+                                                 'updated_at', ts.updated_at,
+                                                 'name', ts.name))
+             FILTER (WHERE ts.id IS NOT NULL), '[]') as "task_status"
         FROM tasks as t
-        INNER JOIN tasks_task_status as tts ON tts.task_id = t.id
-        INNER JOIN tasks_status as ts ON ts.id = tts.task_status_id
+        LEFT OUTER JOIN tasks_task_status as tts ON t.id = tts.task_id
+        LEFT OUTER JOIN task_status as ts ON ts.id = tts.task_status_id
         WHERE t.id = $1
+        GROUP BY t.id
     "#;
     let query = sqlx::query_as::<_, Task>(q).bind(pk);
 
@@ -101,35 +107,37 @@ pub async fn create_task(
     start_date: Option<chrono::DateTime<chrono::Utc>>,
     end_date: Option<chrono::DateTime<chrono::Utc>>,
 ) -> Result<Task, Box<dyn Error>> {
-    let q1 = r"
-        INSERT INTO tasks (
-            name,
-            description,
-            start_date,
-            end_date
-        ) VALUES ($1, $2, $3, $4)
-        RETURNING *
-    ";
+    let q1 = r#"
+        with new_task as (
+            INSERT INTO task (
+                name,
+                description,
+                start_date,
+                end_date
+            ) VALUES ($1, $2, $3, $4)
+            RETURNING id as t_id
+        ), created_status (
+            INSERT INTO tasks_task_status (
+                task_id,
+                task_status_id
+            )
+            SELECT task_id, $5
+        )
+        INSERT INTO tasks_task_status (
+            task_id,
+            task_status_id
+        )
+        SELECT task_id, $6
+    "#;
     let query = sqlx::query_as::<_, Task>(q1)
         .bind(name)
         .bind(description)
         .bind(start_date)
-        .bind(end_date);
+        .bind(end_date)
+        .bind(task_status::StartingTaskStatusEntries::Created as i64)
+        .bind(task_status::StartingTaskStatusEntries::Open as i64);
 
     let new_task = query.fetch_one(conn).await?;
-
-    let q2 = r"
-        INSERT INTO tasks_task_status ('
-            task_id,
-            task_status_id
-        ) VALUES
-            ($1, $2),
-            ($1, $3)
-    ";
-    let _ = sqlx::query_as::<_, TaskTaskStatus>(q2)
-        .bind(new_task.id)
-        .bind(db::task_status::StartingTaskStatusEntries::Created)
-        .bind(db::task_status::StartingTaskStatusEntries::Open);
 
     Ok(new_task)
 }

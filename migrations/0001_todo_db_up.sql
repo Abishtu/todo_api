@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   name             VARCHAR NOT NULL,
   description      VARCHAR,
   start_date       TIMESTAMP WITH TIME ZONE,
-  end_date         TIMESTAMP WITH TIME ZONE,
+  end_date         TIMESTAMP WITH TIME ZONE
 );
 
 CREATE TABLE IF NOT EXISTS task_status (
@@ -23,9 +23,9 @@ CREATE TABLE IF NOT EXISTS tasks_task_status (
   task_status_id BIGSERIAL NOT NULL REFERENCES task_status(id)
 );
 
-CREATE TABLE IF NOT EXISTS method (
+CREATE TABLE IF NOT EXISTS request_method (
     id         BIGSERIAL PRIMARY KEY,
-    created_at TIMESTAMPT WITH TIME ZONE NOT NULL DEFAULT now(),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     name       VARCHAR UNIQUE NOT NULL
 );
 
@@ -34,5 +34,5 @@ CREATE TABLE IF NOT EXISTS task_history (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   task_id    BIGSERIAL NOT NULL REFERENCES tasks(id),
   status_id  BIGSERIAL NOT NULL REFERENCES task_status(id),
-  method_id  BIGSERIAL NOT NULL REFERENCES method(id)
+  method_id  BIGSERIAL NOT NULL REFERENCES request_method(id)
 );
