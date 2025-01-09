@@ -1,6 +1,6 @@
 use poem::{listener::TcpListener, Route, Server};
 use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
-use todo_api::{api, pong, todo};
+use todo_api::{api};
 
 struct Api {
     some_text: String,
@@ -73,11 +73,6 @@ async fn main() {
     };
 
     let endpoints = (
-        Api {
-            some_text: String::from("Foo World"),
-        },
-        pong::PongApi,
-        todo::TodoListApi,
         api::task::TaskApi {
             db_pool: Box::new(pool.clone()),
         },
@@ -93,7 +88,7 @@ async fn main() {
     let ui = api_service.swagger_ui();
     let app = Route::new().nest("/api", api_service).nest("/", ui);
 
-    println!("Strting Server on 0.0.0.0:3000");
+    println!("Starting Server on 0.0.0.0:3000");
     let _ = Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
         .await;

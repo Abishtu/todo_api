@@ -1,10 +1,8 @@
 use sqlx::{Decode, FromRow, Type};
 use std::error::Error;
 use sqlx::types::Json;
-use crate::db::task_status::TaskStatus;
-use crate::db;
-use crate::db::task_status;
-use crate::db::task_task_status::TaskTaskStatus;
+use crate::db::task_status::{StartingTaskStatusEntries, TaskStatus};
+use crate::db::task_task_status::{create_tasks_task_status};
 
 #[derive(Debug, FromRow, Type)]
 pub struct Task {
@@ -16,6 +14,17 @@ pub struct Task {
     pub start_date: Option<chrono::DateTime<chrono::Utc>>,
     pub end_date: Option<chrono::DateTime<chrono::Utc>>,
     pub task_status: Json<Vec<TaskStatus>>,
+}
+
+#[derive(Debug, FromRow, Type)]
+pub struct TaskDB {
+    pub id: i64,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub name: String,
+    pub description: Option<String>,
+    pub start_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub end_date: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 impl Task {
@@ -44,7 +53,17 @@ impl Task {
     }
 }
 
-pub async fn get_task_list(conn: &sqlx::PgPool) -> Result<Vec<Task>, Box<dyn Error>> {
+pub async fn get_task_list(
+    conn: &sqlx::PgPool,
+    is_name: bool,
+    name: Option<String>,
+    is_description: bool,
+    description: Option<String>,
+    is_start_date: bool,
+    start_date: Option<chrono::DateTime<chrono::Utc>>,
+    is_end_date: bool,
+    end_date: Option<chrono::DateTime<chrono::Utc>>,
+) -> Result<Vec<Task>, Box<dyn Error>> {
     let q = r#"
         SELECT
              t.id,
@@ -62,10 +81,34 @@ pub async fn get_task_list(conn: &sqlx::PgPool) -> Result<Vec<Task>, Box<dyn Err
         FROM tasks as t
         LEFT OUTER JOIN tasks_task_status as tts ON t.id = tts.task_id
         LEFT OUTER JOIN task_status as ts ON ts.id = tts.task_status_id
-        GROUP BY t.id
 
+        WHERE
+            CASE
+                WHEN $1 THEN t.name LIKE $2 ELSE true
+            END
+        AND
+            CASE
+                WHEN $3 THEN t.description LIKE $4 ELSE true
+            END
+        AND
+            CASE
+                WHEN $5 THEN t.start_date >= $6 ELSE true
+            END
+        AND
+            CASE
+                WHEN $7 THEN t.end_date <= $8 ELSE true
+            END
+        GROUP BY t.id
     "#;
-    let query = sqlx::query_as::<_, Task>(q);
+    let query = sqlx::query_as::<_, Task>(q)
+        .bind(is_name)
+        .bind(name)
+        .bind(is_description)
+        .bind(description)
+        .bind(is_start_date)
+        .bind(start_date)
+        .bind(is_end_date)
+        .bind(end_date);
 
     let task_list = query.fetch_all(conn).await?;
 
@@ -107,39 +150,32 @@ pub async fn create_task(
     start_date: Option<chrono::DateTime<chrono::Utc>>,
     end_date: Option<chrono::DateTime<chrono::Utc>>,
 ) -> Result<Task, Box<dyn Error>> {
-    let q1 = r#"
-        with new_task as (
-            INSERT INTO task (
-                name,
-                description,
-                start_date,
-                end_date
-            ) VALUES ($1, $2, $3, $4)
-            RETURNING id as t_id
-        ), created_status (
-            INSERT INTO tasks_task_status (
-                task_id,
-                task_status_id
-            )
-            SELECT task_id, $5
-        )
-        INSERT INTO tasks_task_status (
-            task_id,
-            task_status_id
-        )
-        SELECT task_id, $6
+    let create_task_q = r#"
+        INSERT INTO tasks (
+            name,
+            description,
+            start_date,
+            end_date
+        ) VALUES ($1, $2, $3, $4)
+        RETURNING *
     "#;
-    let query = sqlx::query_as::<_, Task>(q1)
+
+    let create_task_query = sqlx::query_as::<_, TaskDB>(create_task_q)
         .bind(name)
         .bind(description)
         .bind(start_date)
-        .bind(end_date)
-        .bind(task_status::StartingTaskStatusEntries::Created as i64)
-        .bind(task_status::StartingTaskStatusEntries::Open as i64);
+        .bind(end_date);
+    let new_task = create_task_query.fetch_one(conn).await?;
 
-    let new_task = query.fetch_one(conn).await?;
+    let add_task_status = create_tasks_task_status(
+        conn,
+        new_task.id,
+        StartingTaskStatusEntries::Created as i64
+    ).await?;
 
-    Ok(new_task)
+    let final_task = get_task(conn, &add_task_status.task_id).await?;
+
+    Ok(final_task)
 }
 
 pub async fn update_task(
@@ -163,7 +199,7 @@ pub async fn update_task(
         WHERE id = $9
         RETURNING *
     ";
-    let query = sqlx::query_as::<_, Task>(q)
+    let query = sqlx::query_as::<_, TaskDB>(q)
         .bind(is_name)
         .bind(name)
         .bind(is_description)
@@ -174,7 +210,9 @@ pub async fn update_task(
         .bind(end_date)
         .bind(id);
 
-    let new_task = query.fetch_one(conn).await?;
+    let updated_task = query.fetch_one(conn).await?;
+
+    let new_task = get_task(conn, &updated_task.id).await?;
 
     Ok(new_task)
 }

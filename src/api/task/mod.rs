@@ -1,5 +1,5 @@
-use poem_openapi::param::Path;
-use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi};
+use poem_openapi::param::{Path, Query};
+use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi, ApiExtractor};
 use crate::api::task_status::TaskStatus;
 use crate::db;
 
@@ -55,6 +55,14 @@ enum CreateTaskResponse {
 
 #[derive(Object)]
 struct EditTask {
+    name: Option<String>,
+    description: Option<String>,
+    start_date: Option<chrono::DateTime<chrono::Utc>>,
+    end_date: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Object)]
+struct TaskFilter {
     name: Option<String>,
     description: Option<String>,
     start_date: Option<chrono::DateTime<chrono::Utc>>,
@@ -135,9 +143,46 @@ impl TaskApi {
     }
 
     #[oai(path = "/task", method = "get")]
-    async fn get_task_list(&self) -> GetTaskListResponse {
+    async fn get_task_list(
+        &self,
+        name: Query<Option<String>>,
+        description: Query<Option<String>>,
+        start_date: Query<Option<chrono::DateTime<chrono::Utc>>>,
+        end_date: Query<Option<chrono::DateTime<chrono::Utc>>>,
+    ) -> GetTaskListResponse {
         let db_pool = self.db_pool.clone();
-        let task_list = db::task::get_task_list(&db_pool).await;
+
+        let is_name = match name.0 {
+            Some(_) => true,
+            None => false,
+        };
+
+        let is_description = match description.0 {
+            Some(_) => true,
+            None => false,
+        };
+
+        let is_start_date = match start_date.0 {
+            Some(_) => true,
+            None => false,
+        };
+
+        let is_end_date = match end_date.0 {
+            Some(_) => true,
+            None => false,
+        };
+
+        let task_list = db::task::get_task_list(
+            &db_pool,
+            is_name,
+            name.0,
+            is_description,
+            description.0,
+            is_start_date,
+            start_date.0,
+            is_end_date,
+            end_date.0,
+        ).await;
 
         match task_list {
             Ok(data) => {

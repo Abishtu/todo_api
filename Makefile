@@ -11,8 +11,8 @@ define build
 	docker compose -p ${COMPOSE_PROJECT_NAME} -f ./docker/docker-compose.yaml build
 endef
 
-define up
-	docker compose -p ${COMPOSE_PROJECT_NAME} -f ./docker/docker-compose.yaml up
+define run
+	docker compose -p ${COMPOSE_PROJECT_NAME} -f ./docker/docker-compose.yaml run --publish 3000:3000 --rm todo-api cargo run
 endef
 
 define stop
@@ -44,13 +44,16 @@ stop:
 deploy:
 	${call copy_env}
 	${call build}
-	${call up}
+	${call run}
 
 redeploy:
 	${call stop}
 	${call copy_env}
 	${call build}
-	${call up}
+	${call run}
+
+run:
+	${call run}
 
 session:
 	${call session}
