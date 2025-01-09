@@ -93,7 +93,7 @@ async fn main() {
 
     let api_service_url = api_base_url + &String::from(":") + &api_base_port + &String::from("/api");
     let api_service =
-        OpenApiService::new(endpoints, "Hello World", "1.0").server(api_service_url);
+        OpenApiService::new(endpoints, "ToDo API", "1.0");
     let ui = api_service.swagger_ui();
 
     let open_api_spec = api_service.spec_yaml();
