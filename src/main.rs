@@ -38,6 +38,16 @@ async fn main() {
         Err(_) => String::from(""),
     };
 
+    let api_base_url = match std::env::var("TODO_API_BASE_URL") {
+        Ok(env_var) => String::from(env_var),
+        Err(_) => String::from(""),
+    };
+
+    let api_base_port = match std::env::var("TODO_API_BASE_PORT") {
+        Ok(env_var) => String::from(env_var),
+        Err(_) => String::from(""),
+    };
+
     let url = String::from("postgres://")
         + &user
         + &String::from(":")
@@ -46,11 +56,8 @@ async fn main() {
         + &(port)
         + &String::from("/")
         + &(db_name);
-    let display_url = String::from("postgres://")
-    + &String::from("******")
-    + &String::from(":")
-    + &String::from("******")
-    + &String::from("@db:")
+
+    let display_url = String::from("postgres://******:******@db:")
     + &(port)
     + &String::from("/")
     + &db_name;
@@ -83,8 +90,10 @@ async fn main() {
             db_pool: Box::new(pool.clone()),
         },
     );
+
+    let api_service_url = api_base_url + &String::from(":") + &api_base_port + &String::from("/api");
     let api_service =
-        OpenApiService::new(endpoints, "Hello World", "1.0").server("http://localhost:3000/api");
+        OpenApiService::new(endpoints, "Hello World", "1.0").server(api_service_url);
     let ui = api_service.swagger_ui();
 
     let open_api_spec = api_service.spec_yaml();

@@ -52,6 +52,9 @@ redeploy:
 	${call build}
 	${call run}
 
+copy_env:
+	${call copy_env}
+
 run:
 	${call run}
 
