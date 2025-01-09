@@ -1,0 +1,379 @@
+openapi: 3.0.0
+info:
+  title: Hello World
+  version: '1.0'
+servers:
+- url: http://localhost:3000/api
+tags: []
+paths:
+  /task/{pk}:
+    get:
+      parameters:
+      - name: pk
+        schema:
+          type: integer
+          format: int64
+        in: path
+        required: true
+        deprecated: false
+        explode: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '500':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      parameters:
+      - name: pk
+        schema:
+          type: integer
+          format: int64
+        in: path
+        required: true
+        deprecated: false
+        explode: true
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: '#/components/schemas/EditTask'
+        required: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '500':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /task:
+    get:
+      parameters:
+      - name: name
+        schema:
+          type: string
+        in: query
+        required: false
+        deprecated: false
+        explode: true
+      - name: description
+        schema:
+          type: string
+        in: query
+        required: false
+        deprecated: false
+        explode: true
+      - name: start_date
+        schema:
+          type: string
+          format: date-time
+        in: query
+        required: false
+        deprecated: false
+        explode: true
+      - name: end_date
+        schema:
+          type: string
+          format: date-time
+        in: query
+        required: false
+        deprecated: false
+        explode: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/TaskList'
+        '500':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: '#/components/schemas/CreateTask'
+        required: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '500':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /task_status/{pk}:
+    get:
+      parameters:
+      - name: pk
+        schema:
+          type: integer
+          format: int64
+        in: path
+        required: true
+        deprecated: false
+        explode: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/TaskStatus'
+        '500':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /task_status:
+    get:
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/TaskStatusList'
+        '500':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: '#/components/schemas/CreateTaskStatus'
+        required: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/TaskStatus'
+        '500':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /task_history/{pk}:
+    get:
+      parameters:
+      - name: pk
+        schema:
+          type: integer
+          format: int64
+        in: path
+        required: true
+        deprecated: false
+        explode: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/TaskHistory'
+        '500':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /task_history:
+    get:
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/TaskHistoryList'
+        '500':
+          description: ''
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    CreateTask:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+    CreateTaskStatus:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+    EditTask:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+      - msg
+      properties:
+        msg:
+          type: string
+    Task:
+      type: object
+      required:
+      - id
+      - created_at
+      - updated_at
+      - name
+      - status
+      properties:
+        id:
+          type: integer
+          format: int64
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        name:
+          type: string
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        status:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskStatus'
+    TaskHistory:
+      type: object
+      required:
+      - id
+      - created_at
+      - task_id
+      - status_id
+      properties:
+        id:
+          type: integer
+          format: int64
+        created_at:
+          type: string
+          format: date-time
+        task_id:
+          type: integer
+          format: int64
+        status_id:
+          type: integer
+          format: int64
+    TaskHistoryList:
+      type: object
+      required:
+      - data
+      - total
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskHistory'
+        total:
+          type: integer
+          format: int64
+    TaskList:
+      type: object
+      required:
+      - data
+      - total
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        total:
+          type: integer
+          format: int64
+    TaskStatus:
+      type: object
+      required:
+      - id
+      - updated_at
+      - created_at
+      - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        updated_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        name:
+          type: string
+    TaskStatusList:
+      type: object
+      required:
+      - data
+      - total
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskStatus'
+        total:
+          type: integer
+          format: int64

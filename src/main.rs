@@ -1,7 +1,7 @@
 use poem::{listener::TcpListener, Route, Server};
 use poem_openapi::{payload::PlainText, OpenApi, OpenApiService};
 use todo_api::{api};
-
+use std::fs;
 struct Api {
     some_text: String,
 }
@@ -86,6 +86,18 @@ async fn main() {
     let api_service =
         OpenApiService::new(endpoints, "Hello World", "1.0").server("http://localhost:3000/api");
     let ui = api_service.swagger_ui();
+
+    let open_api_spec = api_service.spec_yaml();
+    let create_open_api_spec = fs::write("./src/spec/open_api.yaml", open_api_spec);
+    match create_open_api_spec {
+        Ok(_) => {
+            println!("Successfully created OpenAPI spec");
+        },
+        Err(err) => {
+            eprintln!("Error creating OpenAPI spec: {:?}", err);
+        }
+    }
+
     let app = Route::new().nest("/api", api_service).nest("/", ui);
 
     println!("Starting Server on 0.0.0.0:3000");

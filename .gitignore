@@ -2,3 +2,4 @@
 /docker/.env
 /.env
 .env
+/client
